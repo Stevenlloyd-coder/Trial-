@@ -214,6 +214,20 @@ html, body {
 }
 .capture-btn:active .capture-btn-inner { transform: scale(0.88); }
 
+/* ── Landscape: move shutter controls to right edge ────────────────────────── */
+@media (orientation: landscape) {
+    .fs-controls {
+        flex-direction: column;
+        top: 0; bottom: 0; right: 0; left: auto;
+        width: 110px;
+        padding: 40px 16px;
+        padding-right: max(16px, env(safe-area-inset-right));
+        background: linear-gradient(to left, rgba(0,0,0,0.65), transparent);
+        justify-content: center;
+        gap: 28px;
+    }
+}
+
 /* ── Accordion ─────────────────────────────────────────────────────────────── */
 .accordion-section {
     background: var(--bg-card);

@@ -6,7 +6,7 @@ const state = {
     stream:     null,
     facingMode: 'environment',
     flashOn:    false,
-    quality:    0.8,
+    quality:    0.92,
     watermark: {
         enabled:     false,
         logoDataUrl: localStorage.getItem('wm_logo') || null,
@@ -113,7 +113,7 @@ async function startCamera() {
     stopCamera();
     try {
         state.stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: state.facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+            video: { facingMode: state.facingMode, width: { ideal: 4096 }, height: { ideal: 3072 } },
             audio: false
         });
     } catch {
