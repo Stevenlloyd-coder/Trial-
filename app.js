@@ -58,6 +58,7 @@ const el = {
     disconnectBtn:      $('disconnectBtn'),
     selectedFolder:     $('selectedFolderPath'),
     changeFolderBtn:    $('changeFolderBtn'),
+    switchAccountBtn:   $('switchAccountBtn'),
     redirectDisplay:    $('redirectUriDisplay'),
     photoModal:         $('photoModal'),
     modalBackdrop:      $('modalBackdrop'),
@@ -354,7 +355,7 @@ async function generatePKCE() {
     return { verifier, challenge };
 }
 
-async function connectDropbox() {
+async function connectDropbox(forceReapprove = false) {
     const key = state.dropbox.appKey;
     if (!key) { toast('Please enter your App Key first'); return; }
 
@@ -370,7 +371,17 @@ async function connectDropbox() {
         redirect_uri:          redirectUri,
         token_access_type:     'online'
     });
+    if (forceReapprove) params.set('force_reapprove', 'true');
     window.location.href = `https://www.dropbox.com/oauth2/authorize?${params}`;
+}
+
+async function switchAccount() {
+    state.dropbox.token = '';
+    localStorage.removeItem('dbx_token');
+    showNotConnected();
+    // force_reapprove ensures Dropbox shows the auth screen even if a session exists,
+    // giving the user a chance to log out and log into a different account
+    await connectDropbox(true);
 }
 
 async function handleOAuthReturn() {
@@ -682,6 +693,7 @@ function bindEvents() {
     el.clearAppKeyBtn.addEventListener('click', clearAppKey);
     el.connectBtn    .addEventListener('click', connectDropbox);
     el.disconnectBtn .addEventListener('click', disconnectDropbox);
+    el.switchAccountBtn.addEventListener('click', switchAccount);
     el.changeFolderBtn.addEventListener('click', openFolderBrowser);
 
     el.modalBackdrop .addEventListener('click', closeModal);
