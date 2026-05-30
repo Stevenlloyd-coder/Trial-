@@ -551,6 +551,69 @@ html, body {
     margin-top: 14px;
 }
 
+/* ── Logo upload ─────────────────────────────────────────────────────────────── */
+.file-input-hidden { display: none; }
+
+.logo-upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 18px 12px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    transition: border-color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.logo-upload-label:hover,
+.logo-upload-label:active {
+    border-color: var(--accent);
+    background: rgba(0,97,255,0.06);
+    color: var(--text);
+}
+.logo-upload-icon { font-size: 1.6rem; line-height: 1; }
+
+.logo-preview-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    padding: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+.logo-preview-wrap img {
+    display: block;
+    max-width: 100%;
+    max-height: 90px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+.btn-clear-logo {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: var(--danger);
+    color: #fff;
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    -webkit-tap-highlight-color: transparent;
+}
+
 .folder-display {
     display: flex;
     align-items: center;

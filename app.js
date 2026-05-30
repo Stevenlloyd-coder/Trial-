@@ -9,7 +9,9 @@ const state = {
     quality:    0.8,
     watermark: {
         enabled:     false,
-        text:        'BestWest Building',
+        logoDataUrl: localStorage.getItem('wm_logo') || null,
+        logoImg:     null,
+        logoSize:    parseInt(localStorage.getItem('wm_logo_size') || '15', 10),
         includeDate: true
     },
     photos:      [],
@@ -40,8 +42,15 @@ const el = {
     qualityValue:       $('qualityValue'),
     watermarkToggle:    $('watermarkToggle'),
     watermarkOptions:   $('watermarkOptions'),
-    watermarkText:      $('watermarkText'),
     watermarkDate:      $('watermarkDate'),
+    logoFileInput:      $('logoFileInput'),
+    logoUploadLabel:    $('logoUploadLabel'),
+    logoPreviewWrap:    $('logoPreviewWrap'),
+    logoPreview:        $('logoPreview'),
+    clearLogoBtn:       $('clearLogoBtn'),
+    logoSizeRow:        $('logoSizeRow'),
+    logoSizeSlider:     $('logoSizeSlider'),
+    logoSizeValue:      $('logoSizeValue'),
     batchBtn:           $('batchWatermarkBtn'),
     photoQueue:         $('photoQueue'),
     photoCount:         $('photoCount'),
@@ -169,44 +178,34 @@ function captureFlash() {
 
 // ── Watermark ──────────────────────────────────────────────────────────────────
 // Layout matches the example photo:
-//   - Company name  → top-right corner
-//   - Date/time     → bottom-left corner
+//   - Company logo  → top-right corner (image, no background box)
+//   - Date/time     → bottom-left corner (white text, dark pill)
 
 function stampWatermark(canvas, ctx, date) {
-    const w = canvas.width;
-    const h = canvas.height;
-    const pad   = Math.round(w * 0.018);
-    const fSize = Math.max(16, Math.round(w * 0.026));
-    const font  = `bold ${fSize}px Arial, sans-serif`;
+    const w      = canvas.width;
+    const h      = canvas.height;
+    const margin = Math.round(w * 0.015);
 
-    ctx.font = font;
-    ctx.textBaseline = 'top';
-
-    // ── Top-right: company name ──
-    const companyText = state.watermark.text.trim();
-    if (companyText) {
-        const tw = ctx.measureText(companyText).width;
-        const bw = tw + pad * 2;
-        const bh = fSize + pad * 2;
-        const bx = w - bw - pad;
-        const by = pad;
-
-        ctx.fillStyle = 'rgba(0,0,0,0.60)';
-        roundRect(ctx, bx, by, bw, bh, 6);
-        ctx.fill();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(companyText, bx + pad, by + pad);
+    // ── Top-right: company logo image ──
+    if (state.watermark.logoImg) {
+        const logoW = Math.round(w * state.watermark.logoSize / 100);
+        const logoH = Math.round(logoW * state.watermark.logoImg.naturalHeight
+                                         / state.watermark.logoImg.naturalWidth);
+        ctx.drawImage(state.watermark.logoImg, w - logoW - margin, margin, logoW, logoH);
     }
 
     // ── Bottom-left: date/time ──
     if (state.watermark.includeDate) {
+        const fSize   = Math.max(16, Math.round(w * 0.026));
+        const pad     = Math.round(w * 0.018);
         const dateStr = formatDate(date);
-        const tw = ctx.measureText(dateStr).width;
-        const bw = tw + pad * 2;
-        const bh = fSize + pad * 2;
-        const bx = pad;
-        const by = h - bh - pad;
+        ctx.font          = `bold ${fSize}px Arial, sans-serif`;
+        ctx.textBaseline  = 'top';
+        const tw  = ctx.measureText(dateStr).width;
+        const bw  = tw + pad * 2;
+        const bh  = fSize + pad * 2;
+        const bx  = margin;
+        const by  = h - bh - margin;
 
         ctx.fillStyle = 'rgba(0,0,0,0.60)';
         roundRect(ctx, bx, by, bw, bh, 6);
@@ -215,6 +214,47 @@ function stampWatermark(canvas, ctx, date) {
         ctx.fillStyle = '#ffffff';
         ctx.fillText(dateStr, bx + pad, by + pad);
     }
+}
+
+// ── Logo upload ────────────────────────────────────────────────────────────────
+
+function handleLogoUpload(file) {
+    if (!file || !file.type.startsWith('image/')) { toast('Please select an image file'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        const dataUrl = e.target.result;
+        try { localStorage.setItem('wm_logo', dataUrl); } catch { /* storage full — skip persist */ }
+        state.watermark.logoDataUrl = dataUrl;
+        loadLogoImage(dataUrl, true);
+    };
+    reader.readAsDataURL(file);
+}
+
+function loadLogoImage(dataUrl, showPreview = false) {
+    const img = new Image();
+    img.onload = () => {
+        state.watermark.logoImg = img;
+        if (showPreview) renderLogoPreview(dataUrl);
+    };
+    img.src = dataUrl;
+}
+
+function renderLogoPreview(dataUrl) {
+    el.logoPreview.src = dataUrl;
+    el.logoPreviewWrap.classList.remove('hidden');
+    el.logoUploadLabel.classList.add('hidden');
+    el.logoSizeRow.classList.remove('hidden');
+}
+
+function clearLogo() {
+    state.watermark.logoDataUrl = null;
+    state.watermark.logoImg     = null;
+    localStorage.removeItem('wm_logo');
+    el.logoPreview.src = '';
+    el.logoPreviewWrap.classList.add('hidden');
+    el.logoUploadLabel.classList.remove('hidden');
+    el.logoSizeRow.classList.add('hidden');
+    el.logoFileInput.value = '';
 }
 
 function formatDate(d) {
@@ -676,8 +716,16 @@ function bindEvents() {
         el.watermarkOptions.classList.toggle('hidden', !state.watermark.enabled);
     });
 
-    el.watermarkText.addEventListener('input', () => {
-        state.watermark.text = el.watermarkText.value;
+    el.logoFileInput.addEventListener('change', e => {
+        if (e.target.files[0]) handleLogoUpload(e.target.files[0]);
+    });
+
+    el.clearLogoBtn.addEventListener('click', clearLogo);
+
+    el.logoSizeSlider.addEventListener('input', () => {
+        state.watermark.logoSize = parseInt(el.logoSizeSlider.value, 10);
+        el.logoSizeValue.textContent = el.logoSizeSlider.value + '%';
+        localStorage.setItem('wm_logo_size', el.logoSizeSlider.value);
     });
 
     el.watermarkDate.addEventListener('change', () => {
@@ -713,12 +761,12 @@ async function init() {
     // Show redirect URI in setup instructions
     el.redirectDisplay.textContent = pageUrl();
 
-    // Restore saved watermark text if any
-    const savedWmText = localStorage.getItem('wm_text');
-    if (savedWmText !== null) {
-        state.watermark.text = savedWmText;
-        el.watermarkText.value = savedWmText;
+    // Restore saved logo and size
+    if (state.watermark.logoDataUrl) {
+        loadLogoImage(state.watermark.logoDataUrl, true);
     }
+    el.logoSizeSlider.value       = state.watermark.logoSize;
+    el.logoSizeValue.textContent  = state.watermark.logoSize + '%';
 
     el.qualitySlider.value    = Math.round(state.quality * 100);
     el.qualityValue.textContent = Math.round(state.quality * 100) + '%';
@@ -726,11 +774,6 @@ async function init() {
     renderDropboxSection();
     renderQueue();
     bindEvents();
-
-    // Persist watermark text across sessions
-    el.watermarkText.addEventListener('change', () => {
-        localStorage.setItem('wm_text', state.watermark.text);
-    });
 
     // Handle Dropbox OAuth redirect
     await handleOAuthReturn();

@@ -60,8 +60,24 @@
                 </div>
                 <div id="watermarkOptions" class="watermark-options hidden">
                     <div class="form-field">
-                        <label class="field-label">Company Name (top-right)</label>
-                        <input type="text" id="watermarkText" value="BestWest Building" placeholder="Company name" class="text-input">
+                        <label class="field-label">Company Logo (top-right)</label>
+                        <input type="file" id="logoFileInput" accept="image/*" class="file-input-hidden">
+                        <label for="logoFileInput" id="logoUploadLabel" class="logo-upload-label">
+                            <span class="logo-upload-icon">&#128247;</span>
+                            <span>Tap to upload logo</span>
+                            <span class="field-label">PNG, JPG, SVG &amp; more</span>
+                        </label>
+                        <div id="logoPreviewWrap" class="logo-preview-wrap hidden">
+                            <img id="logoPreview" alt="Logo preview">
+                            <button id="clearLogoBtn" class="btn-clear-logo" title="Remove logo">&times;</button>
+                        </div>
+                        <div id="logoSizeRow" class="hidden" style="margin-top:10px">
+                            <div class="control-row">
+                                <label class="field-label">Logo size</label>
+                                <span id="logoSizeValue" class="control-value">15%</span>
+                            </div>
+                            <input type="range" id="logoSizeSlider" min="5" max="40" value="15" class="slider" style="margin-top:8px">
+                        </div>
                     </div>
                     <div class="control-row">
                         <label class="field-label">Include date &amp; time (bottom-left)</label>
