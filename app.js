@@ -30,58 +30,81 @@ const state = {
 const $ = id => document.getElementById(id);
 
 const el = {
-    preview:            $('cameraPreview'),
-    canvas:             $('captureCanvas'),
-    cameraError:        $('cameraError'),
-    cameraErrorMsg:     $('cameraErrorMsg'),
-    captureBtn:         $('captureBtn'),
-    switchBtn:          $('switchCameraBtn'),
-    flashBtn:           $('flashBtn'),
-    retryCameraBtn:     $('retryCameraBtn'),
-    qualitySlider:      $('qualitySlider'),
-    qualityValue:       $('qualityValue'),
-    watermarkToggle:    $('watermarkToggle'),
-    watermarkOptions:   $('watermarkOptions'),
-    watermarkDate:      $('watermarkDate'),
-    logoFileInput:      $('logoFileInput'),
-    logoUploadLabel:    $('logoUploadLabel'),
-    logoPreviewWrap:    $('logoPreviewWrap'),
-    logoPreview:        $('logoPreview'),
-    clearLogoBtn:       $('clearLogoBtn'),
-    logoSizeRow:        $('logoSizeRow'),
-    logoSizeSlider:     $('logoSizeSlider'),
-    logoSizeValue:      $('logoSizeValue'),
-    batchBtn:           $('batchWatermarkBtn'),
-    photoQueue:         $('photoQueue'),
-    photoCount:         $('photoCount'),
-    uploadAllBtn:       $('uploadAllBtn'),
-    setupInstructions:  $('setupInstructions'),
-    dropboxAuth:        $('dropboxAuth'),
-    appKeyInput:        $('appKeyInput'),
-    saveAppKeyBtn:      $('saveAppKeyBtn'),
-    appKeyDisplay:      $('appKeyDisplay'),
-    clearAppKeyBtn:     $('clearAppKeyBtn'),
-    dropboxNotConn:     $('dropboxNotConnected'),
-    dropboxConn:        $('dropboxConnected'),
-    connectBtn:         $('connectDropboxBtn'),
-    disconnectBtn:      $('disconnectBtn'),
-    selectedFolder:     $('selectedFolderPath'),
-    changeFolderBtn:    $('changeFolderBtn'),
-    switchAccountBtn:   $('switchAccountBtn'),
-    redirectDisplay:    $('redirectUriDisplay'),
-    photoModal:         $('photoModal'),
-    modalBackdrop:      $('modalBackdrop'),
-    modalImg:           $('modalImage'),
-    modalClose:         $('modalClose'),
-    modalUploadBtn:     $('modalUploadBtn'),
-    modalDeleteBtn:     $('modalDeleteBtn'),
-    folderModal:        $('folderModal'),
-    folderModalBack:    $('folderModalBackdrop'),
-    folderList:         $('folderList'),
-    folderNavBack:      $('folderNavBack'),
-    folderPath:         $('folderBrowserPath'),
-    folderModalClose:   $('folderModalClose'),
-    selectFolderBtn:    $('selectFolderBtn')
+    // Inline preview
+    preview:         $('cameraPreview'),
+    cameraError:     $('cameraError'),
+    cameraErrorMsg:  $('cameraErrorMsg'),
+    retryCameraBtn:  $('retryCameraBtn'),
+    expandFsBtn:     $('expandFsBtn'),
+
+    // Fullscreen overlay
+    fsOverlay:       $('fsOverlay'),
+    fsVideo:         $('fsVideo'),
+    exitFsBtn:       $('exitFsBtn'),
+    captureBtn:      $('captureBtn'),
+    switchBtn:       $('switchCameraBtn'),
+    flashBtn:        $('flashBtn'),
+    canvas:          $('captureCanvas'),
+
+    // Quality
+    qualitySlider:   $('qualitySlider'),
+    qualityValue:    $('qualityValue'),
+
+    // Settings accordion
+    settingsToggle:  $('settingsToggle'),
+    settingsPanel:   $('settingsPanel'),
+    settingsChevron: $('settingsChevron'),
+
+    // Watermark
+    watermarkToggle: $('watermarkToggle'),
+    watermarkOptions:$('watermarkOptions'),
+    watermarkDate:   $('watermarkDate'),
+    logoFileInput:   $('logoFileInput'),
+    logoUploadLabel: $('logoUploadLabel'),
+    logoPreviewWrap: $('logoPreviewWrap'),
+    logoPreview:     $('logoPreview'),
+    clearLogoBtn:    $('clearLogoBtn'),
+    logoSizeRow:     $('logoSizeRow'),
+    logoSizeSlider:  $('logoSizeSlider'),
+    logoSizeValue:   $('logoSizeValue'),
+    batchBtn:        $('batchWatermarkBtn'),
+
+    // Gallery
+    photoQueue:      $('photoQueue'),
+    photoCount:      $('photoCount'),
+    uploadAllBtn:    $('uploadAllBtn'),
+
+    // Dropbox settings
+    setupInstructions: $('setupInstructions'),
+    dropboxAuth:       $('dropboxAuth'),
+    appKeyInput:       $('appKeyInput'),
+    saveAppKeyBtn:     $('saveAppKeyBtn'),
+    appKeyDisplay:     $('appKeyDisplay'),
+    clearAppKeyBtn:    $('clearAppKeyBtn'),
+    dropboxNotConn:    $('dropboxNotConnected'),
+    dropboxConn:       $('dropboxConnected'),
+    connectBtn:        $('connectDropboxBtn'),
+    disconnectBtn:     $('disconnectBtn'),
+    selectedFolder:    $('selectedFolderPath'),
+    changeFolderBtn:   $('changeFolderBtn'),
+    switchAccountBtn:  $('switchAccountBtn'),
+    redirectDisplay:   $('redirectUriDisplay'),
+
+    // Modals
+    photoModal:       $('photoModal'),
+    modalBackdrop:    $('modalBackdrop'),
+    modalImg:         $('modalImage'),
+    modalClose:       $('modalClose'),
+    modalSaveBtn:     $('modalSaveBtn'),
+    modalUploadBtn:   $('modalUploadBtn'),
+    modalDeleteBtn:   $('modalDeleteBtn'),
+    folderModal:      $('folderModal'),
+    folderModalBack:  $('folderModalBackdrop'),
+    folderList:       $('folderList'),
+    folderNavBack:    $('folderNavBack'),
+    folderPath:       $('folderBrowserPath'),
+    folderModalClose: $('folderModalClose'),
+    selectFolderBtn:  $('selectFolderBtn')
 };
 
 // ── Camera ─────────────────────────────────────────────────────────────────────
@@ -102,7 +125,9 @@ async function startCamera() {
             return;
         }
     }
+    // Feed the same stream to both inline preview and fullscreen video
     el.preview.srcObject = state.stream;
+    el.fsVideo.srcObject = state.stream;
     el.cameraError.classList.add('hidden');
 }
 
@@ -128,17 +153,35 @@ async function toggleFlash() {
     el.flashBtn.innerHTML = state.flashOn ? '&#x1F526;' : '&#9889;';
 }
 
+// ── Fullscreen camera ──────────────────────────────────────────────────────────
+
+function openFullscreen() {
+    el.fsOverlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    // Try native fullscreen (Android); iOS ignores this but fixed overlay works fine
+    el.fsOverlay.requestFullscreen?.().catch(() => {});
+}
+
+function exitFullscreen() {
+    el.fsOverlay.classList.add('hidden');
+    document.body.style.overflow = '';
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+}
+
 // ── Capture ────────────────────────────────────────────────────────────────────
 
 function capturePhoto() {
-    if (!el.preview.videoWidth) { toast('Camera not ready yet'); return; }
-
+    // Capture from whichever video has valid dimensions
+    const video  = el.fsVideo.videoWidth ? el.fsVideo : el.preview;
     const canvas = el.canvas;
-    canvas.width  = el.preview.videoWidth;
-    canvas.height = el.preview.videoHeight;
+
+    if (!video.videoWidth) { toast('Camera not ready yet'); return; }
+
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
 
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(el.preview, 0, 0);
+    ctx.drawImage(video, 0, 0);
 
     const original = canvas.toDataURL('image/jpeg', state.quality);
 
@@ -176,6 +219,36 @@ function captureFlash() {
     setTimeout(() => f.remove(), 300);
 }
 
+// ── Save to iPhone Photos ──────────────────────────────────────────────────────
+
+async function saveToPhotos(id) {
+    const photo = state.photos.find(p => p.id === id);
+    if (!photo) return;
+
+    try {
+        const blob = dataUrlToBlob(photo.dataUrl);
+        const file = new File([blob], photo.filename, { type: 'image/jpeg' });
+        // Web Share API — on iOS this opens the share sheet with "Save Image" option
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'Inspection Photo' });
+            return;
+        }
+    } catch (err) {
+        if (err.name === 'AbortError') return; // user dismissed share sheet
+    }
+
+    // Fallback: download link (works on all browsers; on iOS saves to Files)
+    const url = URL.createObjectURL(dataUrlToBlob(photo.dataUrl));
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = photo.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('Photo saved');
+}
+
 // ── Watermark ──────────────────────────────────────────────────────────────────
 // Layout matches the example photo:
 //   - Company logo  → top-right corner (image, no background box)
@@ -199,13 +272,13 @@ function stampWatermark(canvas, ctx, date) {
         const fSize   = Math.max(16, Math.round(w * 0.026));
         const pad     = Math.round(w * 0.018);
         const dateStr = formatDate(date);
-        ctx.font          = `bold ${fSize}px Arial, sans-serif`;
-        ctx.textBaseline  = 'top';
-        const tw  = ctx.measureText(dateStr).width;
-        const bw  = tw + pad * 2;
-        const bh  = fSize + pad * 2;
-        const bx  = margin;
-        const by  = h - bh - margin;
+        ctx.font         = `bold ${fSize}px Arial, sans-serif`;
+        ctx.textBaseline = 'top';
+        const tw = ctx.measureText(dateStr).width;
+        const bw = tw + pad * 2;
+        const bh = fSize + pad * 2;
+        const bx = margin;
+        const by = h - bh - margin;
 
         ctx.fillStyle = 'rgba(0,0,0,0.60)';
         roundRect(ctx, bx, by, bw, bh, 6);
@@ -223,7 +296,7 @@ function handleLogoUpload(file) {
     const reader = new FileReader();
     reader.onload = e => {
         const dataUrl = e.target.result;
-        try { localStorage.setItem('wm_logo', dataUrl); } catch { /* storage full — skip persist */ }
+        try { localStorage.setItem('wm_logo', dataUrl); } catch { /* storage full */ }
         state.watermark.logoDataUrl = dataUrl;
         loadLogoImage(dataUrl, true);
     };
@@ -303,13 +376,21 @@ function applyWatermarkToPhoto(photo) {
 
 async function batchWatermark() {
     if (!state.photos.length) { toast('No photos to watermark'); return; }
-    el.batchBtn.disabled   = true;
+    el.batchBtn.disabled    = true;
     el.batchBtn.textContent = 'Applying…';
     for (const p of state.photos) await applyWatermarkToPhoto(p);
     renderQueue();
-    el.batchBtn.disabled   = false;
+    el.batchBtn.disabled    = false;
     el.batchBtn.textContent = 'Apply Watermark to All Photos';
     toast(`Watermark applied to ${state.photos.length} photo(s)`);
+}
+
+// ── Settings accordion ─────────────────────────────────────────────────────────
+
+function toggleSettings() {
+    const open = el.settingsPanel.classList.toggle('hidden');
+    el.settingsChevron.classList.toggle('open', !open);
+    el.settingsToggle.setAttribute('aria-expanded', String(!open));
 }
 
 // ── Photo queue ────────────────────────────────────────────────────────────────
@@ -321,7 +402,7 @@ function renderQueue() {
 
     el.photoQueue.innerHTML = '';
     if (!count) {
-        el.photoQueue.innerHTML = '<p class="empty-message">No photos yet&#8202;—&#8202;tap the shutter to start</p>';
+        el.photoQueue.innerHTML = '<p class="empty-message">No photos yet&#8202;—&#8202;tap Shoot Fullscreen to start</p>';
         return;
     }
 
@@ -330,30 +411,34 @@ function renderQueue() {
         div.className = 'photo-thumb' + (photo.uploaded ? ' uploaded' : '');
 
         const badges = [
-            photo.uploaded    ? '<span class="badge ok">&#10003; Done</span>' : '',
-            photo.watermarked ? '<span class="badge">WM</span>' : ''
+            photo.uploaded    ? '<span class="badge ok">&#10003;</span>' : '',
+            photo.watermarked ? '<span class="badge">WM</span>'          : ''
         ].join('');
 
         const upBtn = !photo.uploaded
-            ? `<button class="btn-thumb btn-thumb-up"  data-id="${photo.id}" title="Upload">&uarr;</button>`
+            ? `<button class="btn-thumb btn-thumb-up"  data-id="${photo.id}" title="Upload to Dropbox">&#8593;</button>`
             : '';
 
         div.innerHTML = `
             <img src="${photo.dataUrl}" alt="Inspection photo" loading="lazy">
             <div class="photo-badges">${badges}</div>
             <div class="thumb-actions">
+                <button class="btn-thumb btn-thumb-save" data-id="${photo.id}" title="Save to Photos">&#128247;</button>
                 ${upBtn}
-                <button class="btn-thumb btn-thumb-del" data-id="${photo.id}" title="Delete">&times;</button>
+                <button class="btn-thumb btn-thumb-del"  data-id="${photo.id}" title="Delete">&times;</button>
             </div>`;
 
         div.querySelector('img').addEventListener('click', () => openModal(photo.id));
+
+        div.querySelector('.btn-thumb-save').addEventListener('click', e => {
+            e.stopPropagation(); saveToPhotos(photo.id);
+        });
 
         const up = div.querySelector('.btn-thumb-up');
         if (up) up.addEventListener('click', e => { e.stopPropagation(); uploadOne(photo.id); });
 
         div.querySelector('.btn-thumb-del').addEventListener('click', e => {
-            e.stopPropagation();
-            deletePhoto(photo.id);
+            e.stopPropagation(); deletePhoto(photo.id);
         });
 
         el.photoQueue.appendChild(div);
@@ -373,8 +458,8 @@ function openModal(id) {
     if (!photo) return;
     state.modalPhotoId = id;
     el.modalImg.src = photo.dataUrl;
-    el.modalUploadBtn.disabled   = photo.uploaded || !state.dropbox.token;
-    el.modalUploadBtn.textContent = photo.uploaded ? 'Uploaded ✓' : 'Upload to Dropbox';
+    el.modalUploadBtn.disabled    = photo.uploaded || !state.dropbox.token;
+    el.modalUploadBtn.textContent = photo.uploaded ? 'Uploaded ✓' : '↑ Dropbox';
     el.photoModal.classList.remove('hidden');
 }
 
@@ -385,7 +470,6 @@ function closeModal() {
 
 // ── Dropbox auth ───────────────────────────────────────────────────────────────
 
-// Uses PKCE (no client secret needed — safe for browser apps)
 async function generatePKCE() {
     const arr = new Uint8Array(32);
     crypto.getRandomValues(arr);
@@ -419,8 +503,6 @@ async function switchAccount() {
     state.dropbox.token = '';
     localStorage.removeItem('dbx_token');
     showNotConnected();
-    // force_reapprove ensures Dropbox shows the auth screen even if a session exists,
-    // giving the user a chance to log out and log into a different account
     await connectDropbox(true);
 }
 
@@ -541,10 +623,10 @@ function closeFolderBrowser() {
 }
 
 async function loadFolder(path) {
-    state.dropbox.browsePath = path;
-    el.folderPath.textContent    = path || '/ root';
-    el.folderNavBack.disabled    = !path;
-    el.folderList.innerHTML      = '<div class="loading">Loading…</div>';
+    state.dropbox.browsePath  = path;
+    el.folderPath.textContent = path || '/ root';
+    el.folderNavBack.disabled = !path;
+    el.folderList.innerHTML   = '<div class="loading">Loading…</div>';
 
     try {
         const res = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
@@ -556,8 +638,9 @@ async function loadFolder(path) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data    = await res.json();
-        const folders = (data.entries || []).filter(e => e['.tag'] === 'folder')
-                                            .sort((a, b) => a.name.localeCompare(b.name));
+        const folders = (data.entries || [])
+            .filter(e => e['.tag'] === 'folder')
+            .sort((a, b) => a.name.localeCompare(b.name));
 
         el.folderList.innerHTML = '';
         if (!folders.length) {
@@ -604,8 +687,8 @@ async function uploadOne(id) {
 
     try {
         await pushToDropbox(photo);
-        photo.uploaded    = true;
-        photo._uploading  = false;
+        photo.uploaded   = true;
+        photo._uploading = false;
         renderQueue();
         toast('Uploaded: ' + photo.filename);
         if (state.modalPhotoId === id) {
@@ -650,8 +733,8 @@ async function pushToDropbox(photo) {
     const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
         method:  'POST',
         headers: {
-            'Authorization':  `Bearer ${state.dropbox.token}`,
-            'Content-Type':   'application/octet-stream',
+            'Authorization':   `Bearer ${state.dropbox.token}`,
+            'Content-Type':    'application/octet-stream',
             'Dropbox-API-Arg': JSON.stringify({ path, mode: 'add', autorename: true, mute: false })
         },
         body: dataUrlToBlob(photo.dataUrl)
@@ -678,7 +761,7 @@ function dataUrlToBlob(dataUrl) {
 
 function toast(msg) {
     const t = document.createElement('div');
-    t.className = 'toast';
+    t.className   = 'toast';
     t.textContent = msg;
     document.body.appendChild(t);
     requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('show')); });
@@ -694,61 +777,74 @@ function pageUrl() {
     return window.location.origin + window.location.pathname;
 }
 
-function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ── Event wiring ───────────────────────────────────────────────────────────────
 
 function bindEvents() {
-    el.captureBtn.addEventListener('click', capturePhoto);
-    el.switchBtn .addEventListener('click', switchCamera);
-    el.flashBtn  .addEventListener('click', toggleFlash);
+    // Camera
+    el.expandFsBtn  .addEventListener('click', openFullscreen);
+    el.exitFsBtn    .addEventListener('click', exitFullscreen);
+    el.captureBtn   .addEventListener('click', capturePhoto);
+    el.switchBtn    .addEventListener('click', switchCamera);
+    el.flashBtn     .addEventListener('click', toggleFlash);
     el.retryCameraBtn.addEventListener('click', startCamera);
 
+    // Exit fullscreen when back button pressed on Android
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) el.fsOverlay.classList.add('hidden');
+    });
+
+    // Quality
     el.qualitySlider.addEventListener('input', () => {
         state.quality = el.qualitySlider.value / 100;
         el.qualityValue.textContent = el.qualitySlider.value + '%';
     });
 
+    // Settings accordion
+    el.settingsToggle.addEventListener('click', toggleSettings);
+
+    // Watermark
     el.watermarkToggle.addEventListener('change', () => {
         state.watermark.enabled = el.watermarkToggle.checked;
         el.watermarkOptions.classList.toggle('hidden', !state.watermark.enabled);
     });
-
     el.logoFileInput.addEventListener('change', e => {
         if (e.target.files[0]) handleLogoUpload(e.target.files[0]);
     });
-
     el.clearLogoBtn.addEventListener('click', clearLogo);
-
     el.logoSizeSlider.addEventListener('input', () => {
         state.watermark.logoSize = parseInt(el.logoSizeSlider.value, 10);
         el.logoSizeValue.textContent = el.logoSizeSlider.value + '%';
         localStorage.setItem('wm_logo_size', el.logoSizeSlider.value);
     });
-
     el.watermarkDate.addEventListener('change', () => {
         state.watermark.includeDate = el.watermarkDate.checked;
     });
-
     el.batchBtn.addEventListener('click', batchWatermark);
 
+    // Gallery
     el.uploadAllBtn.addEventListener('click', uploadAll);
 
-    el.saveAppKeyBtn.addEventListener('click', saveAppKey);
-    el.appKeyInput  .addEventListener('keydown', e => { if (e.key === 'Enter') saveAppKey(); });
-    el.clearAppKeyBtn.addEventListener('click', clearAppKey);
-    el.connectBtn    .addEventListener('click', connectDropbox);
-    el.disconnectBtn .addEventListener('click', disconnectDropbox);
+    // Dropbox settings
+    el.saveAppKeyBtn  .addEventListener('click', saveAppKey);
+    el.appKeyInput    .addEventListener('keydown', e => { if (e.key === 'Enter') saveAppKey(); });
+    el.clearAppKeyBtn .addEventListener('click', clearAppKey);
+    el.connectBtn     .addEventListener('click', connectDropbox);
+    el.disconnectBtn  .addEventListener('click', disconnectDropbox);
     el.switchAccountBtn.addEventListener('click', switchAccount);
     el.changeFolderBtn.addEventListener('click', openFolderBrowser);
 
+    // Photo modal
     el.modalBackdrop .addEventListener('click', closeModal);
     el.modalClose    .addEventListener('click', closeModal);
+    el.modalSaveBtn  .addEventListener('click', () => { if (state.modalPhotoId) saveToPhotos(state.modalPhotoId); });
     el.modalUploadBtn.addEventListener('click', () => { if (state.modalPhotoId) uploadOne(state.modalPhotoId); });
     el.modalDeleteBtn.addEventListener('click', () => { if (state.modalPhotoId) deletePhoto(state.modalPhotoId); });
 
+    // Folder browser
     el.folderModalBack .addEventListener('click', closeFolderBrowser);
     el.folderModalClose.addEventListener('click', closeFolderBrowser);
     el.folderNavBack   .addEventListener('click', folderBack);
@@ -758,27 +854,20 @@ function bindEvents() {
 // ── Init ───────────────────────────────────────────────────────────────────────
 
 async function init() {
-    // Show redirect URI in setup instructions
     el.redirectDisplay.textContent = pageUrl();
 
-    // Restore saved logo and size
-    if (state.watermark.logoDataUrl) {
-        loadLogoImage(state.watermark.logoDataUrl, true);
-    }
-    el.logoSizeSlider.value       = state.watermark.logoSize;
-    el.logoSizeValue.textContent  = state.watermark.logoSize + '%';
+    if (state.watermark.logoDataUrl) loadLogoImage(state.watermark.logoDataUrl, true);
+    el.logoSizeSlider.value      = state.watermark.logoSize;
+    el.logoSizeValue.textContent = state.watermark.logoSize + '%';
 
-    el.qualitySlider.value    = Math.round(state.quality * 100);
+    el.qualitySlider.value      = Math.round(state.quality * 100);
     el.qualityValue.textContent = Math.round(state.quality * 100) + '%';
 
     renderDropboxSection();
     renderQueue();
     bindEvents();
 
-    // Handle Dropbox OAuth redirect
     await handleOAuthReturn();
-
-    // Refresh user info if token exists
     if (state.dropbox.token) await loadDropboxUser();
 
     await startCamera();

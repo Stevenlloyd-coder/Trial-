@@ -9,185 +9,204 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+    <!-- ══ FULLSCREEN CAMERA OVERLAY ══════════════════════════════════════════ -->
+    <div id="fsOverlay" class="fs-overlay hidden">
+
+        <!-- Top bar -->
+        <div class="fs-top-bar">
+            <button id="exitFsBtn" class="fs-btn" aria-label="Exit fullscreen">&#x2715;</button>
+            <span class="fs-title">BestWest Inspection</span>
+            <div style="width:44px"></div>
+        </div>
+
+        <!-- Video -->
+        <div class="fs-video-wrap">
+            <video id="fsVideo" autoplay playsinline muted></video>
+            <canvas id="captureCanvas" style="display:none"></canvas>
+        </div>
+
+        <!-- Bottom controls -->
+        <div class="fs-controls">
+            <button id="switchCameraBtn" class="cam-btn" title="Switch camera">&#x21BA;</button>
+            <button id="captureBtn" class="capture-btn" aria-label="Take Photo">
+                <span class="capture-btn-inner"></span>
+            </button>
+            <button id="flashBtn" class="cam-btn" title="Flash">&#9889;</button>
+        </div>
+
+    </div>
+
+    <!-- ══ MAIN APP ════════════════════════════════════════════════════════════ -->
     <div id="app">
 
-        <!-- Header -->
         <header class="app-header">
             <span class="header-logo">BestWest</span>
             <h1>Inspection Camera</h1>
         </header>
 
-        <!-- Camera -->
+        <!-- Camera preview (landscape, inline) -->
         <section class="camera-section">
-            <div class="camera-container">
+            <div class="camera-preview-wrap" id="inlinePreviewWrap">
                 <video id="cameraPreview" autoplay playsinline muted></video>
-                <canvas id="captureCanvas" style="display:none"></canvas>
                 <div id="cameraError" class="camera-error hidden">
                     <p id="cameraErrorMsg">Camera unavailable</p>
-                    <button id="retryCameraBtn" class="btn btn-secondary">Retry</button>
-                    <p class="note">Camera requires HTTPS or localhost. Open via a local server.</p>
+                    <button id="retryCameraBtn" class="btn btn-secondary small">Retry</button>
+                    <p class="cam-note">Camera requires HTTPS or localhost.</p>
                 </div>
-            </div>
-            <div class="capture-controls">
-                <button id="switchCameraBtn" class="icon-btn" title="Switch camera">&#x21BA;</button>
-                <button id="captureBtn" class="capture-btn" aria-label="Take Photo">
-                    <span class="capture-btn-inner"></span>
+                <!-- Fullscreen launch button overlaid on preview -->
+                <button id="expandFsBtn" class="expand-btn" title="Open fullscreen camera">
+                    &#x26F6; Shoot Fullscreen
                 </button>
-                <button id="flashBtn" class="icon-btn" title="Flash">&#9889;</button>
             </div>
         </section>
 
-        <!-- Quality & Watermark Controls -->
-        <section class="controls-section">
-            <div class="control-group">
-                <div class="control-row">
-                    <label class="control-label" for="qualitySlider">Photo Quality</label>
-                    <span id="qualityValue" class="control-value">80%</span>
-                </div>
-                <input type="range" id="qualitySlider" min="10" max="100" value="80" class="slider">
-                <div class="quality-hints">
-                    <span>Smaller file</span><span>Best quality</span>
-                </div>
-            </div>
+        <!-- Quality bar (always visible) -->
+        <div class="quality-bar">
+            <label class="quality-label" for="qualitySlider">Quality</label>
+            <input type="range" id="qualitySlider" min="10" max="100" value="80" class="slider">
+            <span id="qualityValue" class="quality-value">80%</span>
+        </div>
 
-            <div class="control-group">
-                <div class="control-row">
-                    <label class="control-label">Watermark</label>
-                    <label class="toggle">
-                        <input type="checkbox" id="watermarkToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                <div id="watermarkOptions" class="watermark-options hidden">
-                    <div class="form-field">
-                        <label class="field-label">Company Logo (top-right)</label>
-                        <input type="file" id="logoFileInput" accept="image/*" class="file-input-hidden">
-                        <label for="logoFileInput" id="logoUploadLabel" class="logo-upload-label">
-                            <span class="logo-upload-icon">&#128247;</span>
-                            <span>Tap to upload logo</span>
-                            <span class="field-label">PNG, JPG, SVG &amp; more</span>
-                        </label>
-                        <div id="logoPreviewWrap" class="logo-preview-wrap hidden">
-                            <img id="logoPreview" alt="Logo preview">
-                            <button id="clearLogoBtn" class="btn-clear-logo" title="Remove logo">&times;</button>
-                        </div>
-                        <div id="logoSizeRow" class="hidden" style="margin-top:10px">
-                            <div class="control-row">
-                                <label class="field-label">Logo size</label>
-                                <span id="logoSizeValue" class="control-value">15%</span>
-                            </div>
-                            <input type="range" id="logoSizeSlider" min="5" max="40" value="15" class="slider" style="margin-top:8px">
-                        </div>
-                    </div>
+        <!-- ══ Settings accordion ══ -->
+        <section class="accordion-section">
+            <button class="accordion-toggle" id="settingsToggle" aria-expanded="false">
+                <span>&#9881; Settings</span>
+                <span class="chevron" id="settingsChevron">&#x25BE;</span>
+            </button>
+            <div id="settingsPanel" class="accordion-body hidden">
+
+                <!-- Watermark -->
+                <div class="setting-group">
                     <div class="control-row">
-                        <label class="field-label">Include date &amp; time (bottom-left)</label>
-                        <label class="toggle small">
-                            <input type="checkbox" id="watermarkDate" checked>
+                        <span class="setting-label">Watermark</span>
+                        <label class="toggle">
+                            <input type="checkbox" id="watermarkToggle">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
-                    <button id="batchWatermarkBtn" class="btn btn-secondary full-width">Apply Watermark to All Photos</button>
+                    <div id="watermarkOptions" class="watermark-options hidden">
+                        <div class="form-field">
+                            <label class="field-label">Company Logo (top-right)</label>
+                            <input type="file" id="logoFileInput" accept="image/*" class="file-input-hidden">
+                            <label for="logoFileInput" id="logoUploadLabel" class="logo-upload-label">
+                                <span class="logo-upload-icon">&#128247;</span>
+                                <span>Tap to upload logo</span>
+                                <span class="field-label">PNG, JPG, SVG &amp; more</span>
+                            </label>
+                            <div id="logoPreviewWrap" class="logo-preview-wrap hidden">
+                                <img id="logoPreview" alt="Logo preview">
+                                <button id="clearLogoBtn" class="btn-clear-logo" title="Remove">&times;</button>
+                            </div>
+                            <div id="logoSizeRow" class="hidden" style="margin-top:10px">
+                                <div class="control-row">
+                                    <label class="field-label">Logo size</label>
+                                    <span id="logoSizeValue" class="control-value">15%</span>
+                                </div>
+                                <input type="range" id="logoSizeSlider" min="5" max="40" value="15" class="slider" style="margin-top:8px">
+                            </div>
+                        </div>
+                        <div class="control-row" style="margin-top:12px">
+                            <label class="field-label">Date &amp; time (bottom-left)</label>
+                            <label class="toggle small">
+                                <input type="checkbox" id="watermarkDate" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <button id="batchWatermarkBtn" class="btn btn-secondary full-width" style="margin-top:12px">
+                            Apply Watermark to All Photos
+                        </button>
+                    </div>
                 </div>
+
+                <div class="setting-divider"></div>
+
+                <!-- Dropbox -->
+                <div class="setting-group">
+                    <p class="setting-label">Dropbox</p>
+
+                    <div id="setupInstructions">
+                        <p class="setup-intro">You need a free Dropbox App Key to connect.</p>
+                        <ol class="setup-steps">
+                            <li>Go to <strong>dropbox.com/developers/apps</strong></li>
+                            <li>Create app &rarr; Scoped Access &rarr; Full Dropbox</li>
+                            <li>Under OAuth 2 &rarr; Redirect URIs, add:<br>
+                                <code id="redirectUriDisplay" class="uri-display">loading&hellip;</code>
+                            </li>
+                            <li>Copy the <strong>App key</strong> from the same page</li>
+                        </ol>
+                        <div class="callout warning">&#x26A0;&#xFE0F; Must be served over HTTPS. Company accounts may need IT admin approval.</div>
+                        <div class="app-key-row" style="margin-top:12px">
+                            <input type="text" id="appKeyInput" placeholder="Paste App Key" class="text-input" autocomplete="off" spellcheck="false">
+                            <button id="saveAppKeyBtn" class="btn btn-primary">Save</button>
+                        </div>
+                    </div>
+
+                    <div id="dropboxAuth" class="hidden">
+                        <div id="dropboxNotConnected">
+                            <p class="app-key-line">Key: <code id="appKeyDisplay"></code>
+                                <button id="clearAppKeyBtn" class="btn-link">Change</button>
+                            </p>
+                            <button id="connectDropboxBtn" class="btn btn-dropbox">Connect to Dropbox</button>
+                        </div>
+                        <div id="dropboxConnected" class="hidden">
+                            <div class="connected-row">
+                                <span class="status-dot connected"></span>
+                                <span id="dropboxUserName">Connected</span>
+                                <button id="disconnectBtn" class="btn-link">Disconnect</button>
+                            </div>
+                            <div class="folder-row">
+                                <label class="field-label">Upload folder</label>
+                                <div class="folder-display">
+                                    <span id="selectedFolderPath" class="folder-path">/ (root)</span>
+                                    <button id="changeFolderBtn" class="btn btn-secondary small">Browse</button>
+                                </div>
+                            </div>
+                            <button id="switchAccountBtn" class="btn btn-secondary full-width switch-account-btn">
+                                &#x21C4;&nbsp; Switch Dropbox Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </section>
 
-        <!-- Photo Queue -->
-        <section class="queue-section">
+        <!-- ══ Photo Gallery ══ -->
+        <section class="gallery-section">
             <div class="section-header">
                 <h2>Photos <span class="count-badge" id="photoCount">0</span></h2>
                 <button id="uploadAllBtn" class="btn btn-primary" disabled>Upload All</button>
             </div>
             <div id="photoQueue" class="photo-queue">
-                <p class="empty-message">No photos yet&#8202;—&#8202;tap the shutter to start</p>
-            </div>
-        </section>
-
-        <!-- Dropbox -->
-        <section class="dropbox-section">
-            <div class="section-header">
-                <h2>Settings</h2>
-            </div>
-
-            <!-- Setup: no app key saved -->
-            <div id="setupInstructions" class="setup-card">
-                <h3>Connect to Dropbox</h3>
-                <p>You need a free <strong>Dropbox App Key</strong> to connect. Steps:</p>
-                <ol>
-                    <li>Go to <strong>dropbox.com/developers/apps</strong></li>
-                    <li>Click <strong>Create app</strong></li>
-                    <li>Choose <strong>Scoped Access</strong> &rarr; <strong>Full Dropbox</strong></li>
-                    <li>Name it (e.g.&nbsp;<em>"Inspection Camera"</em>) and click <strong>Create app</strong></li>
-                    <li>Under <strong>OAuth 2</strong> &rarr; <strong>Redirect URIs</strong>, add this exact URL:<br>
-                        <code id="redirectUriDisplay" class="uri-display">loading&hellip;</code>
-                    </li>
-                    <li>Copy the <strong>App key</strong> (on that same settings page)</li>
-                </ol>
-                <div class="callout warning">
-                    &#x26A0;&#xFE0F; This app must be served over <strong>HTTP</strong> (not opened as a file).
-                    Run: <code>python3 -m http.server 8080</code> then open <code>http://localhost:8080</code>
-                </div>
-                <div class="callout info">
-                    &#x26A0;&#xFE0F; On a company Dropbox account your IT admin may need to approve the app
-                    before you can authorise it.
-                </div>
-                <div class="app-key-row">
-                    <input type="text" id="appKeyInput" placeholder="Paste App Key here" class="text-input" autocomplete="off" spellcheck="false">
-                    <button id="saveAppKeyBtn" class="btn btn-primary">Save</button>
-                </div>
-            </div>
-
-            <!-- Auth panel: app key saved -->
-            <div id="dropboxAuth" class="hidden">
-                <div id="dropboxNotConnected">
-                    <p class="app-key-line">
-                        App Key: <code id="appKeyDisplay"></code>
-                        <button id="clearAppKeyBtn" class="btn-link">Change</button>
-                    </p>
-                    <button id="connectDropboxBtn" class="btn btn-dropbox">Connect to Dropbox</button>
-                </div>
-                <div id="dropboxConnected" class="hidden">
-                    <div class="connected-row">
-                        <span class="status-dot connected"></span>
-                        <span id="dropboxUserName">Connected</span>
-                        <button id="disconnectBtn" class="btn-link">Disconnect</button>
-                    </div>
-                    <div class="folder-row">
-                        <label class="field-label">Upload folder</label>
-                        <div class="folder-display">
-                            <span id="selectedFolderPath" class="folder-path">/ (root)</span>
-                            <button id="changeFolderBtn" class="btn btn-secondary small">Browse</button>
-                        </div>
-                    </div>
-                    <button id="switchAccountBtn" class="btn btn-secondary full-width switch-account-btn">
-                        &#x21C4;&nbsp; Switch Dropbox Account
-                    </button>
-                </div>
+                <p class="empty-message">No photos yet&#8202;—&#8202;tap Shoot Fullscreen to start</p>
             </div>
         </section>
 
     </div><!-- /#app -->
 
-    <!-- Photo preview modal -->
-    <div id="photoModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Photo preview">
+    <!-- ══ Photo preview modal ══ -->
+    <div id="photoModal" class="modal hidden" role="dialog" aria-modal="true">
         <div class="modal-backdrop" id="modalBackdrop"></div>
         <div class="modal-content">
-            <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+            <button class="modal-close" id="modalClose">&times;</button>
             <img id="modalImage" alt="Captured photo">
             <div class="modal-actions">
-                <button id="modalUploadBtn" class="btn btn-primary">Upload to Dropbox</button>
+                <button id="modalSaveBtn"   class="btn btn-secondary">&#128247; Save to Photos</button>
+                <button id="modalUploadBtn" class="btn btn-primary">&#8593; Dropbox</button>
                 <button id="modalDeleteBtn" class="btn btn-danger">Delete</button>
             </div>
         </div>
     </div>
 
-    <!-- Folder browser modal -->
-    <div id="folderModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Browse folders">
+    <!-- ══ Folder browser modal ══ -->
+    <div id="folderModal" class="modal hidden" role="dialog" aria-modal="true">
         <div class="modal-backdrop" id="folderModalBackdrop"></div>
         <div class="modal-content folder-browser">
             <div class="modal-header">
-                <button id="folderNavBack" class="icon-btn dark" disabled title="Go up">&#8249;</button>
+                <button id="folderNavBack" class="icon-btn dark" disabled>&#8249;</button>
                 <span id="folderBrowserPath" class="folder-path">/ root</span>
-                <button class="modal-close" id="folderModalClose" aria-label="Close">&times;</button>
+                <button class="modal-close" id="folderModalClose">&times;</button>
             </div>
             <div id="folderList" class="folder-list">
                 <div class="loading">Loading&hellip;</div>
