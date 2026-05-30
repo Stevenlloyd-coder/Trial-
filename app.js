@@ -489,7 +489,8 @@ async function connectDropbox(forceReapprove = false) {
         code_challenge:        challenge,
         code_challenge_method: 'S256',
         redirect_uri:          redirectUri,
-        token_access_type:     'online'
+        token_access_type:     'online',
+        scope:                 'account_info.read files.metadata.read files.metadata.write files.content.read files.content.write'
     });
     if (forceReapprove) params.set('force_reapprove', 'true');
     window.location.href = `https://www.dropbox.com/oauth2/authorize?${params}`;
@@ -627,11 +628,18 @@ async function loadFolder(path) {
     try {
         const res = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
             method:  'POST',
-            headers: { 'Authorization': `Bearer ${state.dropbox.token}`, 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ path, recursive: false })
+            headers: {
+                'Authorization':          `Bearer ${state.dropbox.token}`,
+                'Content-Type':           'application/json',
+                'Dropbox-API-Path-Root':  JSON.stringify({ '.tag': 'home' })
+            },
+            body: JSON.stringify({ path: path || '', recursive: false })
         });
         if (res.status === 401) { expireToken(); closeFolderBrowser(); return; }
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            throw new Error(errBody.error_summary || errBody.user_message?.text || `HTTP ${res.status}`);
+        }
 
         const data    = await res.json();
         const folders = (data.entries || [])
