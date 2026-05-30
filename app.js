@@ -280,10 +280,6 @@ function stampWatermark(canvas, ctx, date) {
         const bx = margin;
         const by = h - bh - margin;
 
-        ctx.fillStyle = 'rgba(0,0,0,0.60)';
-        roundRect(ctx, bx, by, bw, bh, 6);
-        ctx.fill();
-
         ctx.fillStyle = '#ffffff';
         ctx.fillText(dateStr, bx + pad, by + pad);
     }
